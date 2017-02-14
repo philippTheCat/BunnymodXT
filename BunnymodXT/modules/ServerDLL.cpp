@@ -719,6 +719,7 @@ void ServerDLL::RegisterCVarsAndCommands()
 	if (ORIG_AddToFullPack) {
 		REG(bxt_show_hidden_entities);
 		REG(bxt_show_triggers);
+		REG(bxt_show_trigger_bounding_boxes);
 	}
 	#undef REG
 }
@@ -1115,7 +1116,7 @@ HOOK_DEF_5(ServerDLL, void, __cdecl, CMultiManager__ManagerUse_Linux, void*, thi
 	return ORIG_CMultiManager__ManagerUse_Linux(thisptr, pActivator, pCaller, useType, value);
 }
 
-void ServerDLL::GetTriggerColor(const char *classname, int solidType, float &r, float &g, float &b, float &a) const
+void ServerDLL::GetTriggerColor(const char *classname, int solidType, float &r, float &g, float &b, float &a)
 {
 	assert(std::strncmp(classname, "trigger_", 8) == 0);
 

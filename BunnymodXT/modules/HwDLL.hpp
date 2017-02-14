@@ -156,6 +156,14 @@ public:
 
 	HLStrafe::TraceResult PlayerTrace(const float start[3], const float end[3], HLStrafe::HullType hull);
 
+	inline edict_t* GetEdicts() {
+		return sv ? *reinterpret_cast<edict_t**>(reinterpret_cast<uintptr_t>(sv) + 0x3BC58) : nullptr;
+	}
+
+	inline int GetEdictCount() {
+		return sv ? *reinterpret_cast<int*>(reinterpret_cast<uintptr_t>(sv) + 0x3BC50) : 0;
+	}
+
 	unsigned QueuedSharedRNGSeeds;
 
 	double *frametime_remainder;

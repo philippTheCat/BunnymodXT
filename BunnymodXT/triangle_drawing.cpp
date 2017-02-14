@@ -129,6 +129,36 @@ namespace TriangleDrawing
 		}
 	}
 
+	static void DrawTriggerBoundingBoxes(triangleapi_s *pTriAPI)
+	{
+		if (!CVars::bxt_show_trigger_bounding_boxes.GetBool())
+			return;
+
+		const auto globals = ServerDLL::GetInstance().ppGlobals;
+
+		pTriAPI->RenderMode(kRenderTransAdd);
+		pTriAPI->CullFace(TRI_NONE);
+
+		const auto edicts = HwDLL::GetInstance().GetEdicts();
+		if (edicts) {
+			const auto count = HwDLL::GetInstance().GetEdictCount();
+			for (int i = 0; i < count; ++i) {
+				const auto& ent = edicts[i];
+				const auto classname = (*globals)->pStringBase + ent.v.classname;
+				const bool is_trigger = (std::strncmp(classname, "trigger_", 8) == 0);
+
+				if (!is_trigger)
+					continue;
+
+				float r, g, b, a;
+				ServerDLL::GetTriggerColor(classname, ent.v.solid, r, g, b, a);
+
+				pTriAPI->Color4f(r, g, b, a);
+				TriangleUtils::DrawAACuboid(pTriAPI, ent.v.absmin, ent.v.absmax);
+			}
+		}
+	}
+
 	void VidInit()
 	{
 		white_sprite = ClientDLL::GetInstance().pEngfuncs->pfnSPR_Load("sprites/white.spr");
@@ -147,5 +177,6 @@ namespace TriangleDrawing
 
 		DrawNodes(pTriAPI);
 		DrawUseableEntities(pTriAPI);
+		DrawTriggerBoundingBoxes(pTriAPI);
 	}
 }

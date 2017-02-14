@@ -48,6 +48,8 @@ public:
 	std::vector<const edict_t *> GetUseableEntities(const Vector &origin, float radius) const;
 	std::vector<const Vector *> GetNodePositions() const;
 
+	static void GetTriggerColor(const char *classname, int solidType, float &r, float &g, float &b, float &a);
+
 	enginefuncs_t *pEngfuncs;
 	globalvars_t **ppGlobals;
 
@@ -55,8 +57,6 @@ private:
 	ServerDLL() : IHookableDirFilter({ L"dlls" }) {};
 	ServerDLL(const ServerDLL&);
 	void operator=(const ServerDLL&);
-
-	void GetTriggerColor(const char *classname, int solidType, float &r, float &g, float &b, float &a) const;
 
 protected:
 	typedef int(__cdecl *_GetEntityAPI)(DLL_FUNCTIONS* pFunctionTable, int interfaceVersion);
