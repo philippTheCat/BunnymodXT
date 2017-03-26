@@ -1388,7 +1388,7 @@ void HwDLL::InsertCommands()
 			preExecFramebulk = currentFramebulk;
 			auto& f = input.GetFrame(currentFramebulk);
 			// Movement frame.
-			if (currentRepeat || (f.SaveName.empty() && !f.SeedPresent && f.BtnState == HLTAS::ButtonState::NOTHING && !f.LgagstMinSpeedPresent && !f.ResetFrame)) {
+			if (currentRepeat || (f.SaveName.empty() && !f.SeedPresent && f.BtnState == HLTAS::ButtonState::NOTHING && !f.LgagstMinSpeedPresent && !f.ResetFrame && !f.StrafingAlgorithmPresent && !f.AlgorithmParametersPresent)) {
 				auto c = f.Commands;
 				if (!c.empty()) {
 					c += '\n';
@@ -1636,6 +1636,10 @@ void HwDLL::InsertCommands()
 
 				currentFramebulk++;
 				break;
+			} else if (f.StrafingAlgorithmPresent) {
+				StrafeState.Algorithm = f.GetAlgorithm();
+			} else if (f.AlgorithmParametersPresent) {
+				StrafeState.Parameters = f.GetAlgorithmParameters();
 			}
 
 			currentFramebulk++;
@@ -1754,7 +1758,7 @@ bool HwDLL::GetNextMovementFrame(HLTAS::Frame& f)
 	while (curFramebulk < totalFramebulks) {
 		f = input.GetFrame(curFramebulk);
 		// Only movement frames can have repeats.
-		if (currentRepeat || (f.SaveName.empty() && !f.SeedPresent && f.BtnState == HLTAS::ButtonState::NOTHING && !f.LgagstMinSpeedPresent && !f.ResetFrame))
+		if (currentRepeat || (f.SaveName.empty() && !f.SeedPresent && f.BtnState == HLTAS::ButtonState::NOTHING && !f.LgagstMinSpeedPresent && !f.ResetFrame && !f.StrafingAlgorithmPresent && !f.AlgorithmParametersPresent))
 			return true;
 
 		curFramebulk++;
