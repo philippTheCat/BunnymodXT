@@ -1835,6 +1835,9 @@ HLStrafe::MovementVars HwDLL::GetMovementVars()
 		if (pl) {
 			vars.EntFriction = pl->v.friction;
 			vars.EntGravity = pl->v.gravity;
+
+			if (pl->v.maxspeed != 0.0f)
+				vars.Maxspeed = std::min(vars.Maxspeed, pl->v.maxspeed);
 		} else {
 			vars.EntFriction = 1.0f;
 			vars.EntGravity = 1.0f;
