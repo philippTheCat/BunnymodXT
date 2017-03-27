@@ -248,6 +248,14 @@ namespace patterns
 		);
 	}
 
+	namespace client
+	{
+		PATTERNS(MiddleOfCL_AdjustAngles,
+			"CS-SteamPipe",
+			"DF E0 F6 C4 05 7B 10 D9 41 0C D8 1D ?? ?? ?? ?? DF E0 F6 C4 05 7A 1D D9 41 0C D8 1D ?? ?? ?? ?? DF E0 F6 C4 05 7A 08 D9 05 ?? ?? ?? ?? EB 0B D9 41 0C EB 06 D9 05"
+		);
+	}
+
 	namespace shared
 	{
 		PATTERNS(PM_Jump,

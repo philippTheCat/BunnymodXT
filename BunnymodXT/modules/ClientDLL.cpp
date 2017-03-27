@@ -141,6 +141,7 @@ void ClientDLL::Clear()
 	offOnground = 0;
 	offBhopcap = 0;
 	memset(originalBhopcapInsn, 0, sizeof(originalBhopcapInsn));
+	angleSpeedCap = 0;
 	pEngfuncs = nullptr;
 	cantJumpNextTime = false;
 	SeedsQueued = 0;
@@ -196,6 +197,17 @@ void ClientDLL::FindStuff()
 					break;
 				}
 			}
+		});
+
+	auto fAngleSpeedCap = FindAsync(
+		angleSpeedCap,
+		patterns::client::MiddleOfCL_AdjustAngles,
+		[&](auto pattern) {
+			if (*reinterpret_cast<uint8_t*>(angleSpeedCap + 5) != 0x7B
+				|| *reinterpret_cast<uint8_t*>(angleSpeedCap + 37) != 0x7A
+				|| *reinterpret_cast<uint8_t*>(angleSpeedCap + 328) != 0x7B
+				|| *reinterpret_cast<uint8_t*>(angleSpeedCap + 360) != 0x7A)
+				angleSpeedCap = 0;
 		});
 
 	ORIG_PM_PlayerMove = reinterpret_cast<_PM_PlayerMove>(MemUtils::GetSymbolAddress(m_Handle, "PM_PlayerMove")); // For Linux.
@@ -322,6 +334,16 @@ void ClientDLL::FindStuff()
 				EngineWarning("Bhopcap prediction disabling is not available.\n");
 		}
 	}
+
+	{
+		auto pattern = fAngleSpeedCap.get();
+		if (angleSpeedCap) {
+			EngineDevMsg("[client dll] Found the angle speed cap pattern at %p (using the %s pattern).\n", reinterpret_cast<void*>(angleSpeedCap), pattern->name());
+		} else {
+			EngineDevWarning("[client dll] Could not find the angle speed cap pattern.\n");
+			EngineWarning("CS 1.6 cl_yawspeed and cl_pitchspeed cap removal is not available.\n");
+		}
+	}
 }
 
 bool ClientDLL::FindHUDFunctions()
@@ -374,6 +396,9 @@ void ClientDLL::RegisterCVarsAndCommands()
 		REG(bxt_hud_useables_radius);
 	}
 
+	if (angleSpeedCap)
+		REG(bxt_anglespeed_cap);
+
 	if (ORIG_HUD_Init)
 	{
 		CVars::con_color.Assign(HwDLL::GetInstance().FindCVar("con_color"));
@@ -412,6 +437,27 @@ void ClientDLL::RegisterCVarsAndCommands()
 		REG(bxt_hud_visible_landmarks_anchor);
 	}
 	#undef REG
+}
+
+void ClientDLL::UpdateAngleSpeedCap()
+{
+	if (!angleSpeedCap)
+		return;
+
+	if (CVars::bxt_anglespeed_cap.GetBool())
+	{
+		MemUtils::ReplaceBytes(reinterpret_cast<void*>(angleSpeedCap + 5), 1, reinterpret_cast<const byte*>("\x7B"));
+		MemUtils::ReplaceBytes(reinterpret_cast<void*>(angleSpeedCap + 37), 1, reinterpret_cast<const byte*>("\x7A"));
+		MemUtils::ReplaceBytes(reinterpret_cast<void*>(angleSpeedCap + 328), 1, reinterpret_cast<const byte*>("\x7B"));
+		MemUtils::ReplaceBytes(reinterpret_cast<void*>(angleSpeedCap + 360), 1, reinterpret_cast<const byte*>("\x7A"));
+	}
+	else
+	{
+		MemUtils::ReplaceBytes(reinterpret_cast<void*>(angleSpeedCap + 5), 1, reinterpret_cast<const byte*>("\xEB"));
+		MemUtils::ReplaceBytes(reinterpret_cast<void*>(angleSpeedCap + 37), 1, reinterpret_cast<const byte*>("\xEB"));
+		MemUtils::ReplaceBytes(reinterpret_cast<void*>(angleSpeedCap + 328), 1, reinterpret_cast<const byte*>("\xEB"));
+		MemUtils::ReplaceBytes(reinterpret_cast<void*>(angleSpeedCap + 360), 1, reinterpret_cast<const byte*>("\xEB"));
+	}
 }
 
 HOOK_DEF_0(ClientDLL, void, __cdecl, PM_Jump)

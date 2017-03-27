@@ -33,6 +33,8 @@ public:
 
 	void ResetSeedsQueued() { SeedsQueued = 0; }
 
+	void UpdateAngleSpeedCap();
+
 	cl_enginefunc_t *pEngfuncs;
 
 private:
@@ -52,6 +54,8 @@ protected:
 	
 	ptrdiff_t offBhopcap;
 	byte originalBhopcapInsn[6];
+
+	uintptr_t angleSpeedCap;
 
 	bool cantJumpNextTime;
 

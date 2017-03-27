@@ -1983,6 +1983,8 @@ HOOK_DEF_0(HwDLL, void, __cdecl, Cbuf_Execute)
 	}
 	insideCbuf_Execute = false;
 
+	ClientDLL::GetInstance().UpdateAngleSpeedCap();
+
 	if (CVars::_bxt_taslog.GetBool()) {
 		std::string buf(cmd_text->data, cmd_text->cursize);
 		ORIG_Con_Printf("Cbuf_Execute() #%u end; sv.paused: %d; host_frametime: %f; buffer: %s\n", c, *paused, *host_frametime, buf.c_str());
