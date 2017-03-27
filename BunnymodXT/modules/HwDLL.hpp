@@ -380,4 +380,6 @@ protected:
 	} resetState = ResetState::NORMAL;
 
 	std::string lastLoadedMap;
+
+	float lastVelocity[2]; // For velocity_avg of vectorial strafing.
 };

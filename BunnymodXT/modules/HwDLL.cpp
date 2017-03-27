@@ -300,6 +300,8 @@ void HwDLL::Clear()
 	lastLoadedMap.clear();
 	isOverridingCamera = false;
 	isOffsettingCamera = false;
+	lastVelocity[0] = 0;
+	lastVelocity[1] = 0;
 
 	if (resetState == ResetState::NORMAL) {
 		input.Clear();
@@ -918,6 +920,8 @@ struct HwDLL::Cmd_BXT_TAS_LoadScript
 		hw.SharedRNGSeedPresent = false;
 		hw.SetNonSharedRNGSeed = false;
 		hw.thisFrameIs0ms = false;
+		hw.lastVelocity[0] = 0;
+		hw.lastVelocity[1] = 0;
 
 		auto err = hw.input.Open(fileName).get();
 		if (err.Code != HLTAS::ErrorCode::OK) {
@@ -1418,6 +1422,11 @@ void HwDLL::InsertCommands()
 						// Hope the viewangles aren't changed in ClientDLL's HUD_UpdateClientData() (that happens later in Host_Frame()).
 						GetViewangles(player.Viewangles);
 						//ORIG_Con_Printf("Player viewangles: %f %f %f\n", player.Viewangles[0], player.Viewangles[1], player.Viewangles[2]);
+
+						StrafeState.LastVelocity[0] = lastVelocity[0];
+						StrafeState.LastVelocity[1] = lastVelocity[1];
+						lastVelocity[0] = player.Velocity[0];
+						lastVelocity[1] = player.Velocity[1];
 					}
 				}
 
