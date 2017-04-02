@@ -506,7 +506,6 @@ void HwDLL::FindStuff()
 		//DEF_FUTURE(RandomLong)
 		DEF_FUTURE(SCR_BeginLoadingPlaque)
 		DEF_FUTURE(PM_PlayerTrace)
-		DEF_FUTURE(Host_FilterTime)
 		DEF_FUTURE(V_FadeAlpha)
 		DEF_FUTURE(SCR_UpdateScreen)
 		DEF_FUTURE(PF_GetPhysicsKeyValue)
@@ -546,6 +545,13 @@ void HwDLL::FindStuff()
 					cmd_text = reinterpret_cast<cmdbuf_t*>(*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(ORIG_Cbuf_Execute) + 2) - offsetof(cmdbuf_t, cursize));
 					break;
 				}
+			});
+
+		auto fHost_FilterTime = FindAsync(
+			ORIG_Host_FilterTime,
+			patterns::engine::Host_FilterTime,
+			[&](auto pattern) {
+				hfrMultiplayerCheck = reinterpret_cast<uintptr_t>(ORIG_Host_FilterTime) + 34;
 			});
 
 		auto fSeedRandomNumberGenerator = FindAsync(
@@ -1342,6 +1348,7 @@ void HwDLL::RegisterCVarsAndCommandsIfNeeded()
 	RegisterCVar(CVars::bxt_fade_remove);
 	RegisterCVar(CVars::_bxt_norefresh);
 	RegisterCVar(CVars::_bxt_bunnysplit_time_update_frequency);
+	RegisterCVar(CVars::bxt_hfr_multiplayer);
 
 	if (!ORIG_Cmd_AddMallocCommand)
 		return;
@@ -1987,6 +1994,7 @@ HOOK_DEF_0(HwDLL, void, __cdecl, Cbuf_Execute)
 	insideCbuf_Execute = false;
 
 	ClientDLL::GetInstance().UpdateAngleSpeedCap();
+	UpdateHFRMultiplayerCheck();
 
 	if (CVars::_bxt_taslog.GetBool()) {
 		std::string buf(cmd_text->data, cmd_text->cursize);
@@ -2082,6 +2090,20 @@ HLStrafe::TraceResult HwDLL::PlayerTrace(const float start[3], const float end[3
 	tr.PlaneNormal[2] = pmtr.plane.normal[2];
 	tr.Entity = pmtr.ent;
 	return tr;
+}
+
+void HwDLL::UpdateHFRMultiplayerCheck()
+{
+	if (!hfrMultiplayerCheck)
+		return;
+
+	if (!CVars::bxt_hfr_multiplayer.GetBool()) {
+		if (*reinterpret_cast<const byte*>(hfrMultiplayerCheck) != 0x75)
+			MemUtils::ReplaceBytes(reinterpret_cast<void*>(hfrMultiplayerCheck), 1, reinterpret_cast<const byte*>("\x75"));
+	} else {
+		if (*reinterpret_cast<const byte*>(hfrMultiplayerCheck) != 0xEB)
+			MemUtils::ReplaceBytes(reinterpret_cast<void*>(hfrMultiplayerCheck), 1, reinterpret_cast<const byte*>("\xEB"));
+	}
 }
 
 HOOK_DEF_0(HwDLL, void, __cdecl, SeedRandomNumberGenerator)

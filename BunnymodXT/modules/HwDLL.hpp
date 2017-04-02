@@ -234,6 +234,7 @@ protected:
 	void ResetButtons();
 	void FindCVarsIfNeeded();
 	HLStrafe::MovementVars GetMovementVars();
+	void UpdateHFRMultiplayerCheck();
 	void KeyDown(Key& btn);
 	void KeyUp(Key& btn);
 
@@ -262,6 +263,7 @@ protected:
 	char *sv_areanodes;
 	cmdbuf_t *cmd_text;
 	double *host_frametime;
+	uintptr_t hfrMultiplayerCheck;
 
 	int framesTillExecuting;
 	bool executing;
