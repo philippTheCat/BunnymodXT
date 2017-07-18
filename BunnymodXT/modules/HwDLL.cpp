@@ -7,6 +7,7 @@
 #include "HwDLL.hpp"
 #include "ClientDLL.hpp"
 #include "ServerDLL.hpp"
+#include "SDL.hpp"
 #include "../patterns.hpp"
 #include "../cvars.hpp"
 #include "../hud_custom.hpp"
@@ -1688,6 +1689,16 @@ struct HwDLL::Cmd_BXT_Append
 	}
 };
 
+struct HwDLL::Cmd_BXT_Press_Key
+{
+	USAGE("Usage: bxt_press_key <keynum>\n Emulates a key press.\n");
+
+	static void handler(int keynum)
+	{
+		SDL::GetInstance().PressKey(keynum);
+	}
+};
+
 void HwDLL::RegisterCVarsAndCommandsIfNeeded()
 {
 	if (registeredVarsAndCmds)
@@ -1755,6 +1766,7 @@ void HwDLL::RegisterCVarsAndCommandsIfNeeded()
 	wrapper::Add<Cmd_BXT_Reset_Frametime_Remainder, Handler<>>("_bxt_reset_frametime_remainder");
 	wrapper::Add<Cmd_BXT_TASLog, Handler<>>("bxt_taslog");
 	wrapper::Add<Cmd_BXT_Append, Handler<const char *>>("bxt_append");
+	wrapper::Add<Cmd_BXT_Press_Key, Handler<int>>("bxt_press_key");
 }
 
 void HwDLL::InsertCommands()

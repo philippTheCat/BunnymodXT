@@ -250,6 +250,7 @@ protected:
 	struct Cmd_BXT_Reset_Frametime_Remainder;
 	struct Cmd_BXT_TASLog;
 	struct Cmd_BXT_Append;
+	struct Cmd_BXT_Press_Key;
 
 	void RegisterCVarsAndCommandsIfNeeded();
 	void InsertCommands();

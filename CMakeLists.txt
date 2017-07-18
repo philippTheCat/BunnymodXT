@@ -60,6 +60,7 @@ add_subdirectory (taslogger)
 include_directories ("." hltas/src hlstrafe/src taslogger)
 include_directories (SYSTEM ${RapidJSON_INCLUDE_DIR})
 include_directories (SYSTEM cereal/include)
+include_directories (SYSTEM SDL2/include)
 
 set (LIBRARY_OUTPUT_DIRECTORY ".")
 set (WINDOWS_FILES
@@ -91,6 +92,7 @@ set (HEADER_FILES
 	BunnymodXT/modules/HwDLL.hpp
 	BunnymodXT/modules/ClientDLL.hpp
 	BunnymodXT/modules/ServerDLL.hpp
+	BunnymodXT/modules/SDL.hpp
 	BunnymodXT/bunnymodxt.hpp
 	BunnymodXT/cmd_wrapper.hpp
 	BunnymodXT/custom_triggers.hpp
@@ -119,6 +121,7 @@ set (SOURCE_FILES
 	BunnymodXT/modules/HwDLL.cpp
 	BunnymodXT/modules/ClientDLL.cpp
 	BunnymodXT/modules/ServerDLL.cpp
+	BunnymodXT/modules/SDL.cpp
 	BunnymodXT/custom_triggers.cpp
 	BunnymodXT/cvars.cpp
 	BunnymodXT/hud_custom.cpp
