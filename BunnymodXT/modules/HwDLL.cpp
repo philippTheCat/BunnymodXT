@@ -13,6 +13,9 @@
 #include "../interprocess.hpp"
 #include "../bunnymodxt.hpp"
 #include "../cmd_wrapper.hpp"
+#include "../runtime_data.hpp"
+#include "../git_revision.hpp"
+#include "../custom_triggers.hpp"
 
 using namespace std::literals;
 
@@ -96,6 +99,36 @@ extern "C" void __cdecl VGuiWrap2_ConPrintf(const char* msg)
 {
 	HwDLL::HOOKED_VGuiWrap2_ConPrintf(msg);
 }
+
+extern "C" void __cdecl CL_Record_f()
+{
+	HwDLL::HOOKED_CL_Record_f();
+}
+
+extern "C" void __cdecl Cbuf_AddText(const char* text)
+{
+	HwDLL::HOOKED_Cbuf_AddText(text);
+}
+
+extern "C" void __cdecl Cbuf_InsertTextLines(const char* text)
+{
+	HwDLL::HOOKED_Cbuf_InsertTextLines(text);
+}
+
+extern "C" void __cdecl Key_Event(int key, int down)
+{
+	HwDLL::HOOKED_Key_Event(key, down);
+}
+
+extern "C" void __cdecl Cmd_Exec_f()
+{
+	HwDLL::HOOKED_Cmd_Exec_f();
+}
+
+extern "C" void __cdecl Cmd_TokenizeString(char* text)
+{
+	HwDLL::HOOKED_Cmd_TokenizeString(text);
+}
 #endif
 
 void HwDLL::Hook(const std::wstring& moduleName, void* moduleHandle, void* moduleBase, size_t moduleLength, bool needToIntercept)
@@ -147,6 +180,9 @@ void HwDLL::Hook(const std::wstring& moduleName, void* moduleHandle, void* modul
 			// When the old engine loads hw.dll, it marks it as PAGE_READWRITE, without EXECUTE.
 			// So we need to mark stuff as executable manually, otherwise MinHook complains.
 			MemUtils::MarkAsExecutable(ORIG_Cbuf_Execute);
+			MemUtils::MarkAsExecutable(ORIG_Cbuf_AddText);
+			MemUtils::MarkAsExecutable(ORIG_Cbuf_InsertTextLines);
+			MemUtils::MarkAsExecutable(ORIG_Cmd_TokenizeString);
 			MemUtils::MarkAsExecutable(ORIG_SeedRandomNumberGenerator);
 			MemUtils::MarkAsExecutable(ORIG_time);
 			MemUtils::MarkAsExecutable(ORIG_RandomFloat);
@@ -163,11 +199,17 @@ void HwDLL::Hook(const std::wstring& moduleName, void* moduleHandle, void* modul
 			MemUtils::MarkAsExecutable(ORIG_Host_Reload_f);
 			MemUtils::MarkAsExecutable(ORIG_VGuiWrap2_ConDPrintf);
 			MemUtils::MarkAsExecutable(ORIG_VGuiWrap2_ConPrintf);
+			MemUtils::MarkAsExecutable(ORIG_CL_Record_f);
+			MemUtils::MarkAsExecutable(ORIG_Key_Event);
+			MemUtils::MarkAsExecutable(ORIG_Cmd_Exec_f);
 		}
 
 		MemUtils::Intercept(moduleName,
 			ORIG_LoadAndDecryptHwDLL, HOOKED_LoadAndDecryptHwDLL,
 			ORIG_Cbuf_Execute, HOOKED_Cbuf_Execute,
+			ORIG_Cbuf_AddText, HOOKED_Cbuf_AddText,
+			ORIG_Cbuf_InsertTextLines, HOOKED_Cbuf_InsertTextLines,
+			ORIG_Cmd_TokenizeString, HOOKED_Cmd_TokenizeString,
 			ORIG_SeedRandomNumberGenerator, HOOKED_SeedRandomNumberGenerator,
 			ORIG_time, HOOKED_time,
 			ORIG_RandomFloat, HOOKED_RandomFloat,
@@ -183,7 +225,10 @@ void HwDLL::Hook(const std::wstring& moduleName, void* moduleHandle, void* modul
 			ORIG_Host_Loadgame_f, HOOKED_Host_Loadgame_f,
 			ORIG_Host_Reload_f, HOOKED_Host_Reload_f,
 			ORIG_VGuiWrap2_ConDPrintf, HOOKED_VGuiWrap2_ConDPrintf,
-			ORIG_VGuiWrap2_ConPrintf, HOOKED_VGuiWrap2_ConPrintf);
+			ORIG_VGuiWrap2_ConPrintf, HOOKED_VGuiWrap2_ConPrintf,
+			ORIG_CL_Record_f, HOOKED_CL_Record_f,
+			ORIG_Key_Event, HOOKED_Key_Event,
+			ORIG_Cmd_Exec_f, HOOKED_Cmd_Exec_f);
 	}
 }
 
@@ -194,6 +239,9 @@ void HwDLL::Unhook()
 		MemUtils::RemoveInterception(m_Name,
 			ORIG_LoadAndDecryptHwDLL,
 			ORIG_Cbuf_Execute,
+			ORIG_Cbuf_AddText,
+			ORIG_Cbuf_InsertTextLines,
+			ORIG_Cmd_TokenizeString,
 			ORIG_SeedRandomNumberGenerator,
 			ORIG_time,
 			ORIG_RandomFloat,
@@ -210,7 +258,10 @@ void HwDLL::Unhook()
 			ORIG_Host_Loadgame_f,
 			ORIG_Host_Reload_f,
 			ORIG_VGuiWrap2_ConDPrintf,
-			ORIG_VGuiWrap2_ConPrintf);
+			ORIG_VGuiWrap2_ConPrintf,
+			ORIG_CL_Record_f,
+			ORIG_Key_Event,
+			ORIG_Cmd_Exec_f);
 	}
 
 	for (auto cvar : CVars::allCVars)
@@ -243,6 +294,8 @@ void HwDLL::Clear()
 	ORIG_VGuiWrap2_ConPrintf = nullptr;
 	ORIG_Cbuf_InsertText = nullptr;
 	ORIG_Cbuf_AddText = nullptr;
+	ORIG_Cbuf_InsertTextLines = nullptr;
+	ORIG_Cmd_TokenizeString = nullptr;
 	ORIG_Con_Printf = nullptr;
 	ORIG_Cvar_RegisterVariable = nullptr;
 	ORIG_Cvar_DirectSet = nullptr;
@@ -255,7 +308,11 @@ void HwDLL::Clear()
 	ORIG_PM_PlayerTrace = nullptr;
 	ORIG_SV_AddLinksToPM = nullptr;
 	ORIG_PF_GetPhysicsKeyValue = nullptr;
+	ORIG_CL_RecordHUDCommand = nullptr;
+	ORIG_CL_Record_f = nullptr;
 	ORIG_build_number = nullptr;
+	ORIG_Key_Event = nullptr;
+	ORIG_Cmd_Exec_f = nullptr;
 	registeredVarsAndCmds = false;
 	autojump = false;
 	ducktap = false;
@@ -302,6 +359,11 @@ void HwDLL::Clear()
 	isOffsettingCamera = false;
 	lastVelocity[0] = 0;
 	lastVelocity[1] = 0;
+	insideKeyEvent = false;
+	insideExec = false;
+	execScript.clear();
+	insideHost_Changelevel2_f = false;
+	dontStopAutorecord = false;
 
 	if (resetState == ResetState::NORMAL) {
 		input.Clear();
@@ -327,9 +389,10 @@ void HwDLL::FindStuff()
 		EngineDevMsg("[hw dll] Found Cbuf_Execute at %p.\n", ORIG_Cbuf_Execute);
 
 		cls = MemUtils::GetSymbolAddress(m_Handle, "cls");
-		if (cls)
+		if (cls) {
 			EngineDevMsg("[hw dll] Found cls at %p.\n", cls);
-		else
+			demorecording = reinterpret_cast<int*>(reinterpret_cast<uintptr_t>(cls) + 0x405c);
+		} else
 			EngineDevWarning("[hw dll] Could not find cls.\n");
 
 		sv = MemUtils::GetSymbolAddress(m_Handle, "sv");
@@ -382,6 +445,12 @@ void HwDLL::FindStuff()
 		else
 			EngineDevWarning("[hw dll] Could not find cmd_text.\n");
 
+		cmd_alias = reinterpret_cast<cmdalias_t*>(MemUtils::GetSymbolAddress(m_Handle, "cmd_alias"));
+		if (cmd_alias)
+			EngineDevMsg("[hw dll] Found cmd_alias at %p.\n", cmd_alias);
+		else
+			EngineDevWarning("[hw dll] Could not find cmd_alias.\n");
+
 		host_frametime = reinterpret_cast<double*>(MemUtils::GetSymbolAddress(m_Handle, "host_frametime"));
 		if (host_frametime)
 			EngineDevMsg("[hw dll] Found host_frametime at %p.\n", sv);
@@ -400,7 +469,7 @@ void HwDLL::FindStuff()
 		else
 			EngineDevWarning("[hw dll] Could not find ORIG_SV_AddLinksToPM.\n");
 
-		if (!cls || !sv || !svs || !svmove || !ppmove || !host_client || !sv_player || !sv_areanodes || !cmd_text || !host_frametime || !ORIG_hudGetViewAngles || !ORIG_SV_AddLinksToPM)
+		if (!cls || !sv || !svs || !svmove || !ppmove || !host_client || !sv_player || !sv_areanodes || !cmd_text || !cmd_alias || !host_frametime || !ORIG_hudGetViewAngles || !ORIG_SV_AddLinksToPM)
 			ORIG_Cbuf_Execute = nullptr;
 
 		#define FIND(f) \
@@ -418,6 +487,8 @@ void HwDLL::FindStuff()
 		FIND(Cvar_FindVar)
 		FIND(Cbuf_InsertText)
 		FIND(Cbuf_AddText)
+		FIND(Cbuf_InsertTextLines)
+		FIND(Cmd_TokenizeString)
 		FIND(Cmd_AddMallocCommand)
 		FIND(Cmd_Argc)
 		FIND(Cmd_Args)
@@ -432,6 +503,10 @@ void HwDLL::FindStuff()
 		FIND(Host_Loadgame_f)
 		FIND(Host_Reload_f)
 		FIND(SV_SpawnServer)
+		FIND(CL_RecordHUDCommand)
+		FIND(CL_Record_f)
+		FIND(Key_Event)
+		FIND(Cmd_Exec_f)
 		#undef FIND
 
 		ORIG_Host_FilterTime = reinterpret_cast<_Host_FilterTime>(MemUtils::GetSymbolAddress(m_Handle, "Host_FilterTime"));
@@ -511,11 +586,13 @@ void HwDLL::FindStuff()
 		DEF_FUTURE(PF_GetPhysicsKeyValue)
 		DEF_FUTURE(build_number)
 		DEF_FUTURE(SV_Frame)
-		DEF_FUTURE(CL_Stop_f)
 		DEF_FUTURE(Host_Loadgame_f)
 		DEF_FUTURE(Host_Reload_f)
 		DEF_FUTURE(VGuiWrap2_ConDPrintf)
 		DEF_FUTURE(VGuiWrap2_ConPrintf)
+		DEF_FUTURE(CL_RecordHUDCommand)
+		DEF_FUTURE(CL_Record_f)
+		DEF_FUTURE(Key_Event)
 		#undef DEF_FUTURE
 
 		bool oldEngine = (m_Name.find(L"hl.exe") != std::wstring::npos);
@@ -564,6 +641,26 @@ void HwDLL::FindStuff()
 				);
 			});
 
+		auto fCL_Stop_f = FindAsync(
+			ORIG_CL_Stop_f,
+			patterns::engine::CL_Stop_f,
+			[&](auto pattern) {
+				ptrdiff_t offset;
+				switch (pattern - patterns::engine::CL_Stop_f.cbegin())
+				{
+				default:
+				case 0: // SteamPipe
+					offset = 25;
+					break;
+
+				case 1: // NGHL
+					offset = 22;
+					break;
+				}
+
+				demorecording = *reinterpret_cast<int**>(reinterpret_cast<uintptr_t>(ORIG_CL_Stop_f) + offset);
+			});
+
 		void *SCR_DrawFPS;
 		auto fSCR_DrawFPS = FindAsync(
 			SCR_DrawFPS,
@@ -604,6 +701,10 @@ void HwDLL::FindStuff()
 					offCmd_Args = 39;
 					offCmd_Argv = 144;
 					break;
+				case 3: // HL-WON
+					offCmd_Argc = 25;
+					offCmd_Args = 78;
+					offCmd_Argv = 151;
 				}
 
 				auto f = reinterpret_cast<uintptr_t>(Host_Tell_f);
@@ -709,6 +810,68 @@ void HwDLL::FindStuff()
 						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(ORIG_Host_Changelevel2_f) + 284)
 						+ reinterpret_cast<uintptr_t>(ORIG_Host_Changelevel2_f) + 288);
 					break;
+				case 4: // WON-3.
+					ORIG_SV_SpawnServer = reinterpret_cast<_SV_SpawnServer>(
+						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(ORIG_Host_Changelevel2_f) + 248)
+						+ reinterpret_cast<uintptr_t>(ORIG_Host_Changelevel2_f) + 252);
+					break;
+				}
+			});
+
+		auto fCmd_Exec_f = FindAsync(
+			ORIG_Cmd_Exec_f,
+			patterns::engine::Cmd_Exec_f,
+			[&](auto pattern) {
+				switch (pattern - patterns::engine::Cmd_Exec_f.cbegin())
+				{
+				case 0: // SteamPipe.
+					ORIG_Cbuf_InsertTextLines = reinterpret_cast<_Cbuf_InsertTextLines>(
+						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(ORIG_Cmd_Exec_f) + 510)
+						+ reinterpret_cast<uintptr_t>(ORIG_Cmd_Exec_f) + 514);
+					break;
+				case 1: // 4554.
+					ORIG_Cbuf_InsertTextLines = reinterpret_cast<_Cbuf_InsertTextLines>(
+						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(ORIG_Cmd_Exec_f) + 459)
+						+ reinterpret_cast<uintptr_t>(ORIG_Cmd_Exec_f) + 463);
+					break;
+				case 2: // WON.
+					ORIG_Cbuf_InsertTextLines = reinterpret_cast<_Cbuf_InsertTextLines>(
+						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(ORIG_Cmd_Exec_f) + 175)
+						+ reinterpret_cast<uintptr_t>(ORIG_Cmd_Exec_f) + 179);
+					break;
+				case 3: // WON-2.
+					ORIG_Cbuf_InsertTextLines = reinterpret_cast<_Cbuf_InsertTextLines>(
+						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(ORIG_Cmd_Exec_f) + 441)
+						+ reinterpret_cast<uintptr_t>(ORIG_Cmd_Exec_f) + 445);
+					break;
+				}
+			});
+
+		void* Cmd_ExecuteString;
+		auto fCmd_ExecuteString = FindAsync(
+			Cmd_ExecuteString,
+			patterns::engine::Cmd_ExecuteString,
+			[&](auto pattern) {
+				switch (pattern - patterns::engine::Cmd_ExecuteString.cbegin())
+				{
+				case 0: // SteamPipe.
+					ORIG_Cmd_TokenizeString = reinterpret_cast<_Cmd_TokenizeString>(
+						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 17)
+						+ reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 21);
+					cmd_alias = *reinterpret_cast<cmdalias_t**>(reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 77);
+					break;
+				case 1: // 4554.
+					ORIG_Cmd_TokenizeString = reinterpret_cast<_Cmd_TokenizeString>(
+						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 16)
+						+ reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 20);
+					cmd_alias = *reinterpret_cast<cmdalias_t**>(reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 76);
+					break;
+				case 2: // NGHL.
+					ORIG_Cmd_TokenizeString = reinterpret_cast<_Cmd_TokenizeString>(
+						*reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 16)
+						+ reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 20);
+					cmd_alias = *reinterpret_cast<cmdalias_t**>(reinterpret_cast<uintptr_t>(Cmd_ExecuteString) + 72);
+					break;
 				}
 			});
 
@@ -811,6 +974,40 @@ void HwDLL::FindStuff()
 			}
 		}
 
+		{
+			auto pattern = fCL_Stop_f.get();
+			if (ORIG_CL_Stop_f) {
+				EngineDevMsg("[hw dll] Found CL_Stop_f at %p (using the %s pattern).\n", ORIG_CL_Stop_f, pattern->name());
+				EngineDevMsg("[hw dll] Found demorecording at %p.\n", demorecording);
+			} else {
+				EngineDevWarning("[hw dll] Could not find CL_Stop_f.\n");
+				ORIG_Cbuf_Execute = nullptr;
+			}
+		}
+
+		{
+			auto pattern = fCmd_Exec_f.get();
+			if (ORIG_Cmd_Exec_f) {
+				EngineDevMsg("[hw dll] Found Cmd_Exec_f at %p (using the %s pattern).\n", ORIG_Cmd_Exec_f, pattern->name());
+				EngineDevMsg("[hw dll] Found Cbuf_InsertTextLines at %p.\n", ORIG_Cbuf_InsertTextLines);
+			} else {
+				EngineDevWarning("[hw dll] Could not find Cmd_Exec_f.\n");
+				ORIG_Cbuf_Execute = nullptr;
+			}
+		}
+
+		{
+			auto pattern = fCmd_ExecuteString.get();
+			if (Cmd_ExecuteString) {
+				EngineDevMsg("[hw dll] Found Cmd_ExecuteString at %p (using the %s pattern).\n", Cmd_ExecuteString, pattern->name());
+				EngineDevMsg("[hw dll] Found Cmd_TokenizeString at %p.\n", ORIG_Cmd_TokenizeString);
+				EngineDevMsg("[hw dll] Found cmd_alias at %p.\n", cmd_alias);
+			} else {
+				EngineDevWarning("[hw dll] Could not find Cmd_ExecuteString.\n");
+				ORIG_Cbuf_Execute = nullptr;
+			}
+		}
+
 		#define GET_FUTURE(future_name) \
 			{ \
 				auto pattern = f##future_name.get(); \
@@ -831,9 +1028,12 @@ void HwDLL::FindStuff()
 		//GET_FUTURE(RandomLong)
 		GET_FUTURE(SCR_BeginLoadingPlaque)
 		GET_FUTURE(PM_PlayerTrace)
-		GET_FUTURE(CL_Stop_f)
 		GET_FUTURE(Host_Loadgame_f)
 		GET_FUTURE(Host_Reload_f)
+		GET_FUTURE(CL_RecordHUDCommand)
+		GET_FUTURE(CL_Record_f)
+		GET_FUTURE(build_number);
+		GET_FUTURE(Key_Event);
 		#undef GET_FUTURE
 
 		{
@@ -865,7 +1065,6 @@ void HwDLL::FindStuff()
 		GET_FUTURE(VGuiWrap2_ConPrintf);
 		GET_FUTURE(SCR_UpdateScreen);
 		GET_FUTURE(PF_GetPhysicsKeyValue);
-		GET_FUTURE(build_number);
 
 		if (oldEngine) {
 			GET_FUTURE(LoadAndDecryptHwDLL);
@@ -1121,6 +1320,7 @@ struct HwDLL::Cmd_BXT_Timer_Start
 
 	static void handler()
 	{
+		CustomHud::SaveTimeToDemo();
 		return CustomHud::SetCountingTime(true);
 	}
 };
@@ -1131,6 +1331,7 @@ struct HwDLL::Cmd_BXT_Timer_Stop
 
 	static void handler()
 	{
+		CustomHud::SaveTimeToDemo();
 		return CustomHud::SetCountingTime(false);
 	}
 };
@@ -1141,6 +1342,7 @@ struct HwDLL::Cmd_BXT_Timer_Reset
 
 	static void handler()
 	{
+		CustomHud::SaveTimeToDemo();
 		return CustomHud::ResetTime();
 	}
 };
@@ -1202,6 +1404,158 @@ struct HwDLL::Cmd_BXT_TAS_Ducktap_Up
 	static void handler(const char*)
 	{
 		HwDLL::GetInstance().ducktap = false;
+	}
+};
+
+struct HwDLL::Cmd_BXT_Triggers_Add
+{
+	USAGE("Usage: bxt_triggers_add <x1> <y1> <z1> <x2> <y2> <z2>\n Adds a custom trigger in a form of axis-aligned cuboid with opposite corners at coordinates (x1, y1, z1) and (x2, y2, z2).\n");
+
+	static void handler(float x1, float y1, float z1, float x2, float y2, float z2)
+	{
+		CustomTriggers::triggers.emplace_back(Vector(x1, y1, z1), Vector(x2, y2, z2));
+	}
+};
+
+struct HwDLL::Cmd_BXT_Triggers_Clear
+{
+	NO_USAGE();
+
+	static void handler()
+	{
+		CustomTriggers::triggers.clear();
+	}
+};
+
+struct HwDLL::Cmd_BXT_Triggers_Delete
+{
+	USAGE("Usage: bxt_triggers_delete [id]\n Deletes the last placed trigger.\n If an id is given, deletes the trigger with the given id.\n");
+
+	static void handler()
+	{
+		if (CustomTriggers::triggers.empty()) {
+			HwDLL::GetInstance().ORIG_Con_Printf("You haven't placed any triggers.\n");
+			return;
+		}
+
+		CustomTriggers::triggers.erase(--CustomTriggers::triggers.end());
+	}
+
+	static void handler(unsigned long id)
+	{
+		if (id == 0 || CustomTriggers::triggers.size() < id) {
+			HwDLL::GetInstance().ORIG_Con_Printf("There's no trigger with this id.\n");
+			return;
+		}
+
+		CustomTriggers::triggers.erase(CustomTriggers::triggers.begin() + (id - 1));
+	}
+};
+
+struct HwDLL::Cmd_BXT_Triggers_Export
+{
+	USAGE("Usage: bxt_triggers_export [cmd|script]\n");
+
+	static void handler(const char* type)
+	{
+		auto& hw = HwDLL::GetInstance();
+
+		enum class ExportType {
+			CMD,
+			SCRIPT
+		} export_type;
+
+		if (!std::strcmp(type, "cmd")) {
+			export_type = ExportType::CMD;
+		} else if (!std::strcmp(type, "script")) {
+			export_type = ExportType::SCRIPT;
+		} else {
+			hw.ORIG_Con_Printf("%s", GET_USAGE());
+			return;
+		}
+
+		auto command_separator = (export_type == ExportType::SCRIPT) ? '\n' : ';';
+
+		if (CustomTriggers::triggers.empty()) {
+			hw.ORIG_Con_Printf("You haven't placed any triggers.\n");
+			return;
+		}
+
+		bool first = true;
+		for (const auto& t : CustomTriggers::triggers) {
+			auto corners = t.get_corner_positions();
+
+			std::ostringstream oss;
+
+			if (!first)
+				oss << command_separator;
+
+			oss << "bxt_triggers_add "
+				<< corners.first.x << " " << corners.first.y << " " << corners.first.z << " "
+				<< corners.second.x << " " << corners.second.y << " " << corners.second.z;
+
+			if (t.get_command().size() > 1)
+				oss << command_separator << "bxt_triggers_setcommand \""
+					<< t.get_command().substr(0, t.get_command().size() - 1) << '\"';
+
+			hw.ORIG_Con_Printf("%s", oss.str().c_str());
+
+			first = false;
+		}
+
+		hw.ORIG_Con_Printf("\n");
+	}
+};
+
+struct HwDLL::Cmd_BXT_Triggers_List
+{
+	NO_USAGE();
+
+	static void handler()
+	{
+		auto& hw = HwDLL::GetInstance();
+
+		if (CustomTriggers::triggers.empty()) {
+			hw.ORIG_Con_Printf("You haven't placed any triggers.\n");
+			return;
+		}
+
+		for (size_t i = 0; i < CustomTriggers::triggers.size(); ++i) {
+			const auto& t = CustomTriggers::triggers[i];
+			const auto corners = t.get_corner_positions();
+
+			std::ostringstream oss;
+			oss << i + 1 << ": `" << t.get_command().substr(0, t.get_command().size() - 1) << "` - ("
+				<< corners.first.x << ", " << corners.first.y << ", " << corners.first.z << ") | ("
+				<< corners.second.x << ", " << corners.second.y << ", " << corners.second.z << ")\n";
+
+			hw.ORIG_Con_Printf("%s", oss.str().c_str());
+		}
+	}
+};
+
+struct HwDLL::Cmd_BXT_Triggers_SetCommand
+{
+	USAGE("Usage: bxt_triggers_setcommand <command>\n Sets the last placed trigger's command.\n bxt_triggers_setcommand <id> <command>\n Sets the command of a trigger with the given id.\n");
+
+	static void handler(const char* command)
+	{
+		if (CustomTriggers::triggers.empty()) {
+			HwDLL::GetInstance().ORIG_Con_Printf("You haven't placed any triggers.\n");
+			return;
+		}
+
+		CustomTriggers::triggers.back().set_command(command);
+	}
+
+	static void handler(unsigned long id, const char* command)
+	{
+		if (id == 0 || CustomTriggers::triggers.size() < id) {
+			HwDLL::GetInstance().ORIG_Con_Printf("There's no trigger with this id.\n");
+			return;
+		}
+
+		CustomTriggers::triggers[id - 1].set_command(command);
 	}
 };
 
@@ -1346,9 +1700,13 @@ void HwDLL::RegisterCVarsAndCommandsIfNeeded()
 	RegisterCVar(CVars::bxt_autopause);
 	RegisterCVar(CVars::bxt_interprocess_enable);
 	RegisterCVar(CVars::bxt_fade_remove);
+	RegisterCVar(CVars::bxt_stop_demo_on_changelevel);
 	RegisterCVar(CVars::_bxt_norefresh);
 	RegisterCVar(CVars::_bxt_bunnysplit_time_update_frequency);
 	RegisterCVar(CVars::bxt_hfr_multiplayer);
+	RegisterCVar(CVars::_bxt_save_runtime_data_in_demos);
+
+	CVars::fps_max.Assign(FindCVar("fps_max"));
 
 	if (!ORIG_Cmd_AddMallocCommand)
 		return;
@@ -1380,6 +1738,15 @@ void HwDLL::RegisterCVarsAndCommandsIfNeeded()
 	wrapper::Add<Cmd_BXT_TAS_Autojump_Up, Handler<>, Handler<const char*>>("-bxt_tas_autojump");
 	wrapper::Add<Cmd_BXT_TAS_Ducktap_Down, Handler<>, Handler<const char*>>("+bxt_tas_ducktap");
 	wrapper::Add<Cmd_BXT_TAS_Ducktap_Up, Handler<>, Handler<const char*>>("-bxt_tas_ducktap");
+	wrapper::Add<Cmd_BXT_Triggers_Add, Handler<float, float, float, float, float, float>>("bxt_triggers_add");
+	wrapper::Add<Cmd_BXT_Triggers_Clear, Handler<>>("bxt_triggers_clear");
+	wrapper::Add<Cmd_BXT_Triggers_Delete, Handler<>, Handler<unsigned long>>("bxt_triggers_delete");
+	wrapper::Add<Cmd_BXT_Triggers_Export, Handler<const char*>>("bxt_triggers_export");
+	wrapper::Add<Cmd_BXT_Triggers_List, Handler<>>("bxt_triggers_list");
+	wrapper::Add<
+		Cmd_BXT_Triggers_SetCommand,
+		Handler<const char*>,
+		Handler<unsigned long, const char*>>("bxt_triggers_setcommand");
 	wrapper::Add<Cmd_BXT_Record, Handler<const char *>>("bxt_record");
 	wrapper::Add<Cmd_BXT_AutoRecord, Handler<const char *>>("bxt_autorecord");
 	wrapper::Add<Cmd_BXT_Map, Handler<const char *>>("_bxt_map");
@@ -1879,6 +2246,8 @@ HOOK_DEF_0(HwDLL, void, __cdecl, Cbuf_Execute)
 {
 	RegisterCVarsAndCommandsIfNeeded();
 
+	UpdateCustomTriggers();
+
 	int *state = reinterpret_cast<int*>(cls);
 	int *paused = reinterpret_cast<int*>(sv)+1;
 	static unsigned counter = 1;
@@ -1995,6 +2364,7 @@ HOOK_DEF_0(HwDLL, void, __cdecl, Cbuf_Execute)
 
 	ClientDLL::GetInstance().UpdateAngleSpeedCap();
 	UpdateHFRMultiplayerCheck();
+	RuntimeData::SaveStored();
 
 	if (CVars::_bxt_taslog.GetBool()) {
 		std::string buf(cmd_text->data, cmd_text->cursize);
@@ -2106,6 +2476,93 @@ void HwDLL::UpdateHFRMultiplayerCheck()
 	}
 }
 
+void HwDLL::StoreCommand(const char* command)
+{
+	if (!ORIG_CL_RecordHUDCommand || !demorecording || *demorecording != 1)
+		return;
+
+	ORIG_CL_RecordHUDCommand(command);
+}
+
+void HwDLL::SaveInitialDataToDemo()
+{
+	RuntimeData::Add(RuntimeData::VersionInfo {
+		ORIG_build_number(),
+		Git::GetRevision()
+	});
+
+	auto modules = MemUtils::GetLoadedModules();
+
+	std::vector<std::string> filenames;
+	for (auto module : modules) {
+		auto path = MemUtils::GetModulePath(module);
+		filenames.emplace_back(Convert(GetFileName(path)));
+	}
+
+	RuntimeData::Add(RuntimeData::LoadedModules { std::move(filenames) });
+
+	constexpr const char* cvars_to_save[] = {
+		"bxt_autojump",
+		"bxt_bhopcap",
+		"bxt_fade_remove",
+		"bxt_hud_distance",
+		"bxt_hud_entity_hp",
+		"bxt_hud_origin",
+		"bxt_hud_selfgauss",
+		"bxt_hud_useables",
+		"bxt_hud_velocity",
+		"bxt_hud_visible_landmarks",
+		"bxt_show_hidden_entities",
+		"bxt_show_triggers",
+		"chase_active",
+		"cl_anglespeedkey",
+		"cl_backspeed",
+		"cl_forwardspeed",
+		"cl_pitchdown",
+		"cl_pitchspeed",
+		"cl_pitchup",
+		"cl_sidespeed",
+		"cl_upspeed",
+		"cl_yawspeed",
+		"fps_max",
+		"fps_override",
+		"gl_monolights",
+		"host_framerate",
+		"host_speeds",
+		"r_drawentities",
+		"r_fullbright",
+		"s_show",
+		"snd_show",
+		"sv_cheats",
+	};
+
+	std::unordered_map<std::string, std::string> cvar_values;
+
+	for (const auto cvar_name : cvars_to_save) {
+		const auto cvar = FindCVar(cvar_name);
+
+		if (cvar)
+			cvar_values.emplace(cvar_name, cvar->string);
+	}
+
+	RuntimeData::Add(std::move(cvar_values));
+
+	// Initial BXT timer value.
+	CustomHud::SaveTimeToDemo();
+}
+
+void HwDLL::UpdateCustomTriggers()
+{
+	if (!svs || svs->num_clients < 1)
+		return;
+
+	edict_t *pl = *reinterpret_cast<edict_t**>(reinterpret_cast<uintptr_t>(svs->clients) + offEdict);
+	if (!pl)
+		return;
+
+	CustomTriggers::Update(pl->v.origin, (pl->v.flags & FL_DUCKING) != 0);
+}
+
 HOOK_DEF_0(HwDLL, void, __cdecl, SeedRandomNumberGenerator)
 {
 	insideSeedRNG = true;
@@ -2160,7 +2617,17 @@ HOOK_DEF_0(HwDLL, void, __cdecl, Host_Changelevel2_f)
 		}
 	}
 
-	return ORIG_Host_Changelevel2_f();
+	CustomHud::SaveTimeToDemo();
+
+	if (CVars::bxt_stop_demo_on_changelevel.GetBool()) {
+		dontStopAutorecord = true;
+		ORIG_CL_Stop_f();
+		dontStopAutorecord = false;
+	}
+
+	insideHost_Changelevel2_f = true;
+	ORIG_Host_Changelevel2_f();
+	insideHost_Changelevel2_f = false;
 }
 
 HOOK_DEF_0(HwDLL, void, __cdecl, SCR_BeginLoadingPlaque)
@@ -2223,6 +2690,16 @@ HOOK_DEF_3(HwDLL, int, __cdecl, SV_SpawnServer, int, bIsDemo, char*, server, cha
 	if (insideHost_Reload_f && !autoRecordDemoName.empty())
 		autoRecordNow = true;
 
+	if (insideHost_Changelevel2_f) {
+		if (ret && !autoRecordDemoName.empty()) {
+			if (*demorecording == 0)
+				autoRecordNow = true;
+		} else {
+			autoRecordNow = false;
+			autoRecordDemoName.clear();
+		}
+	}
+
 	return ret;
 }
 
@@ -2242,10 +2719,14 @@ HOOK_DEF_0(HwDLL, void, __cdecl, SV_Frame)
 
 HOOK_DEF_0(HwDLL, void, __cdecl, CL_Stop_f)
 {
-	if (!insideHost_Loadgame_f && !insideHost_Reload_f) {
+	if (!insideHost_Loadgame_f && !insideHost_Reload_f && !dontStopAutorecord) {
 		autoRecordNow = false;
 		autoRecordDemoName.clear();
 	}
+
+	// Write the final time to the demo.
+	CustomHud::SaveTimeToDemo();
+	RuntimeData::SaveStored();
 
 	ORIG_CL_Stop_f();
 }
@@ -2295,4 +2776,83 @@ HOOK_DEF_3(HwDLL, void, __cdecl, LoadAndDecryptHwDLL, int, a, void*, b, void*, c
 	ORIG_LoadAndDecryptHwDLL(a, b, c);
 	EngineDevMsg("[hw dll] LoadAndDecryptHwDLL has been called. Rehooking.\n");
 	Hooks::HookModule(L"hl.exe");
+}
+
+HOOK_DEF_0(HwDLL, void, __cdecl, CL_Record_f)
+{
+	RuntimeData::Clear();
+
+	ORIG_CL_Record_f();
+
+	if (IsRecordingDemo())
+		SaveInitialDataToDemo();
+}
+
+HOOK_DEF_1(HwDLL, void, __cdecl, Cbuf_AddText, const char*, text)
+{
+	// This isn't necessarily a bound command
+	// (because something might have been added in the VGUI handler)
+	// but until something like that comes up it should be fine.
+	if (insideKeyEvent && !ClientDLL::GetInstance().IsInsideKeyEvent()
+		&& !(text[0] == '\n' && text[1] == '\0'))
+		RuntimeData::Add(RuntimeData::BoundCommand { text });
+
+	ORIG_Cbuf_AddText(text);
+}
+
+HOOK_DEF_1(HwDLL, void, __cdecl, Cbuf_InsertTextLines, const char*, text)
+{
+	if (insideExec)
+		execScript += text;
+
+	ORIG_Cbuf_InsertTextLines(text);
+}
+
+HOOK_DEF_1(HwDLL, void, __cdecl, Cmd_TokenizeString, char*, text)
+{
+	ORIG_Cmd_TokenizeString(text);
+
+	if (insideCbuf_Execute && ORIG_Cmd_Argc() > 0) {
+		auto command = ORIG_Cmd_Argv(0);
+
+		for (auto alias = cmd_alias; alias; alias = alias->next) {
+			if (!std::strncmp(alias->name, command, sizeof(alias->name))) {
+				RuntimeData::Add(RuntimeData::AliasExpansion {
+					alias->name,
+					alias->value
+				});
+
+				return;
+			}
+		}
+
+		RuntimeData::Add(RuntimeData::CommandExecution { text });
+	}
+}
+
+HOOK_DEF_2(HwDLL, void, __cdecl, Key_Event, int, key, int, down)
+{
+	insideKeyEvent = true;
+
+	ORIG_Key_Event(key, down);
+
+	insideKeyEvent = false;
+}
+
+HOOK_DEF_0(HwDLL, void, __cdecl, Cmd_Exec_f)
+{
+	insideExec = true;
+
+	ORIG_Cmd_Exec_f();
+
+	insideExec = false;
+
+	if (!execScript.empty()) {
+		RuntimeData::Add(RuntimeData::ScriptExecution {
+			ORIG_Cmd_Argv(1),
+			std::move(execScript)
+		});
+
+		execScript.clear();
+	}
 }

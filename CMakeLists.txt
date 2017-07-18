@@ -42,6 +42,12 @@ endif ()
 
 include(cotire)
 
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+git_describe(GIT_TAG --tags)
+git_local_changes(GIT_LOCAL_CHANGES)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/BunnymodXT/git_revision.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/BunnymodXT/git_revision.cpp" @ONLY)
+
 set (Boost_USE_STATIC_LIBS ON)
 set (Boost_USE_STATIC_RUNTIME ON)
 find_package (Boost 1.57.0 REQUIRED)
@@ -53,6 +59,7 @@ add_subdirectory (taslogger)
 
 include_directories ("." hltas/src hlstrafe/src taslogger)
 include_directories (SYSTEM ${RapidJSON_INCLUDE_DIR})
+include_directories (SYSTEM cereal/include)
 
 set (LIBRARY_OUTPUT_DIRECTORY ".")
 set (WINDOWS_FILES
@@ -86,6 +93,7 @@ set (HEADER_FILES
 	BunnymodXT/modules/ServerDLL.hpp
 	BunnymodXT/bunnymodxt.hpp
 	BunnymodXT/cmd_wrapper.hpp
+	BunnymodXT/custom_triggers.hpp
 	BunnymodXT/cvars.hpp
 	BunnymodXT/hud_custom.hpp
 	BunnymodXT/interprocess.hpp
@@ -95,7 +103,10 @@ set (HEADER_FILES
 	BunnymodXT/sptlib-wrapper.hpp
 	BunnymodXT/stdafx.hpp
 	BunnymodXT/triangle_drawing.hpp
-	BunnymodXT/triangle_utils.hpp)
+	BunnymodXT/triangle_utils.hpp
+	BunnymodXT/TEA.hpp
+	BunnymodXT/runtime_data.hpp
+	BunnymodXT/git_revision.hpp)
 
 set (SOURCE_FILES
 	SPTLib/IHookableModule.cpp
@@ -108,10 +119,14 @@ set (SOURCE_FILES
 	BunnymodXT/modules/HwDLL.cpp
 	BunnymodXT/modules/ClientDLL.cpp
 	BunnymodXT/modules/ServerDLL.cpp
+	BunnymodXT/custom_triggers.cpp
 	BunnymodXT/cvars.cpp
 	BunnymodXT/hud_custom.cpp
 	BunnymodXT/triangle_drawing.cpp
-	BunnymodXT/triangle_utils.cpp)
+	BunnymodXT/triangle_utils.cpp
+	BunnymodXT/TEA.cpp
+	BunnymodXT/runtime_data.cpp
+	${CMAKE_CURRENT_BINARY_DIR}/BunnymodXT/git_revision.cpp)
 
 if (MSVC)
 	include_external_msproject (MinHook "${CMAKE_SOURCE_DIR}/SPTLib/Windows/minhook/build/VC14/libMinHook.vcxproj")

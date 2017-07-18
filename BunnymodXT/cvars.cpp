@@ -9,11 +9,13 @@ namespace CVars
 	CVarWrapper _bxt_min_frametime("_bxt_min_frametime", "0");
 	CVarWrapper _bxt_norefresh("_bxt_norefresh", "0");
 	CVarWrapper _bxt_bunnysplit_time_update_frequency("_bxt_bunnysplit_time_update_frequency", "41");
+	CVarWrapper _bxt_save_runtime_data_in_demos("_bxt_save_runtime_data_in_demos", "1");
 	CVarWrapper bxt_taslog_filename("bxt_taslog_filename", "taslogger.log");
 	CVarWrapper bxt_autopause("bxt_autopause", "0");
 	CVarWrapper bxt_interprocess_enable("bxt_interprocess_enable", "0");
 	CVarWrapper bxt_fade_remove("bxt_fade_remove", "0");
 	CVarWrapper bxt_hfr_multiplayer("bxt_hfr_multiplayer", "0");
+	CVarWrapper bxt_stop_demo_on_changelevel("bxt_stop_demo_on_changelevel", "0");
 
 	CVarWrapper con_color;
 	CVarWrapper sv_maxvelocity;
@@ -26,6 +28,7 @@ namespace CVars
 	CVarWrapper sv_gravity;
 	CVarWrapper sv_stepsize;
 	CVarWrapper sv_bounce;
+	CVarWrapper fps_max;
 
 	// Serverside CVars
 	CVarWrapper bxt_autojump("bxt_autojump", "0");
@@ -39,6 +42,7 @@ namespace CVars
 	CVarWrapper bxt_bhopcap_prediction("bxt_bhopcap_prediction", "1");
 	CVarWrapper bxt_anglespeed_cap("bxt_anglespeed_cap", "1");
 	CVarWrapper bxt_show_nodes("bxt_show_nodes", "0");
+	CVarWrapper bxt_show_custom_triggers("bxt_show_custom_triggers", "1");
 	CVarWrapper bxt_hud("bxt_hud", "1");
 	CVarWrapper bxt_hud_color("bxt_hud_color", "");
 	CVarWrapper bxt_hud_precision("bxt_hud_precision", "6");
@@ -72,6 +76,7 @@ namespace CVars
 	CVarWrapper bxt_hud_visible_landmarks("bxt_hud_visible_landmarks", "0");
 	CVarWrapper bxt_hud_visible_landmarks_offset("bxt_hud_visible_landmarks_offset", "");
 	CVarWrapper bxt_hud_visible_landmarks_anchor("bxt_hud_visible_landmarks_anchor", "0.5 0");
+	CVarWrapper bxt_hud_incorrect_fps_indicator("bxt_hud_incorrect_fps_indicator", "1");
 
 	CVarWrapper bxt_hud_useables("bxt_hud_useables", "0");
 	CVarWrapper bxt_hud_useables_radius("bxt_hud_useables_radius", "64");
@@ -81,11 +86,13 @@ namespace CVars
 		&_bxt_taslog,
 		&_bxt_min_frametime,
 		&_bxt_norefresh,
+		&_bxt_save_runtime_data_in_demos,
 		&bxt_taslog_filename,
 		&bxt_autopause,
 		&bxt_interprocess_enable,
 		&bxt_fade_remove,
 		&bxt_hfr_multiplayer,
+		&bxt_stop_demo_on_changelevel,
 		&con_color,
 		&sv_maxvelocity,
 		&sv_maxspeed,
@@ -97,6 +104,7 @@ namespace CVars
 		&sv_gravity,
 		&sv_stepsize,
 		&sv_bounce,
+		&fps_max,
 		&bxt_autojump,
 		&bxt_bhopcap,
 		&bxt_timer_autostop,
@@ -106,6 +114,7 @@ namespace CVars
 		&bxt_bhopcap_prediction,
 		&bxt_anglespeed_cap,
 		&bxt_show_nodes,
+		&bxt_show_custom_triggers,
 		&bxt_hud,
 		&bxt_hud_color,
 		&bxt_hud_precision,
@@ -139,6 +148,7 @@ namespace CVars
 		&bxt_hud_visible_landmarks,
 		&bxt_hud_visible_landmarks_offset,
 		&bxt_hud_visible_landmarks_anchor,
+		&bxt_hud_incorrect_fps_indicator,
 		&bxt_hud_useables,
 		&bxt_hud_useables_radius
 	};

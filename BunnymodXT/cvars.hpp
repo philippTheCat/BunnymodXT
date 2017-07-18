@@ -116,11 +116,13 @@ namespace CVars
 	extern CVarWrapper _bxt_min_frametime;
 	extern CVarWrapper _bxt_norefresh;
 	extern CVarWrapper _bxt_bunnysplit_time_update_frequency;
+	extern CVarWrapper _bxt_save_runtime_data_in_demos;
 	extern CVarWrapper bxt_taslog_filename;
 	extern CVarWrapper bxt_autopause;
 	extern CVarWrapper bxt_interprocess_enable;
 	extern CVarWrapper bxt_fade_remove;
 	extern CVarWrapper bxt_hfr_multiplayer;
+	extern CVarWrapper bxt_stop_demo_on_changelevel;
 
 	extern CVarWrapper con_color;
 	extern CVarWrapper sv_maxvelocity;
@@ -133,6 +135,7 @@ namespace CVars
 	extern CVarWrapper sv_gravity;
 	extern CVarWrapper sv_stepsize;
 	extern CVarWrapper sv_bounce;
+	extern CVarWrapper fps_max;
 
 	// Serverside CVars
 	extern CVarWrapper bxt_autojump;
@@ -146,6 +149,7 @@ namespace CVars
 	extern CVarWrapper bxt_bhopcap_prediction;
 	extern CVarWrapper bxt_anglespeed_cap;
 	extern CVarWrapper bxt_show_nodes;
+	extern CVarWrapper bxt_show_custom_triggers;
 	extern CVarWrapper bxt_hud;
 	extern CVarWrapper bxt_hud_color;
 	extern CVarWrapper bxt_hud_precision;
@@ -179,6 +183,7 @@ namespace CVars
 	extern CVarWrapper bxt_hud_visible_landmarks;
 	extern CVarWrapper bxt_hud_visible_landmarks_offset;
 	extern CVarWrapper bxt_hud_visible_landmarks_anchor;
+	extern CVarWrapper bxt_hud_incorrect_fps_indicator;
 	extern CVarWrapper bxt_hud_useables;
 	extern CVarWrapper bxt_hud_useables_radius;
 

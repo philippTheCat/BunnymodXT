@@ -5,6 +5,7 @@
 #include <SPTLib/Hooks.hpp>
 #include "hud_custom.hpp"
 #include "interprocess.hpp"
+#include "runtime_data.hpp"
 
 #include <chrono>
 
@@ -70,6 +71,22 @@ namespace CustomHud
 	static inline void DrawString(int x, int y, const char* s)
 	{
 		DrawString(x, y, s, consoleColor[0], consoleColor[1], consoleColor[2]);
+	}
+
+	static void DrawMultilineString(int x, int y, std::string s, float r, float g, float b)
+	{
+		while (s.size() > 0)
+		{
+			auto pos = s.find('\n');
+
+			DrawString(x, y, const_cast<char*>(s.substr(0, pos).c_str()), r, g, b);
+			y += si.iCharHeight;
+
+			if (pos != std::string::npos)
+				s = s.substr(pos + 1, std::string::npos);
+			else
+				s.erase();
+		};
 	}
 
 	static void DrawMultilineString(int x, int y, std::string s)
@@ -626,6 +643,59 @@ namespace CustomHud
 		}
 	}
 
+	void DrawIncorrectFPSIndicator(float flTime)
+	{
+		static float lastTime = flTime;
+
+		// We'll use this for checking the 99.5 FPS with fps_max 99.5 condition,
+		// because even on fps_max + 0.5 engines the FPS can oscillate down to 99.5.
+		static unsigned badFrames = 0;
+
+		if (CVars::bxt_hud_incorrect_fps_indicator.GetBool())
+		{
+			const auto timeDiff = flTime - lastTime;
+
+			if (timeDiff > 0) {
+				const auto fps = 1.0f / timeDiff;
+
+				if (fps > 100.1f && fps < 100.6f) {
+					const auto fps_max = CVars::fps_max.GetFloat();
+
+					if (fps_max > 99.6f && fps_max < 100.6f) {
+						const char message[] = "Your FPS seems to be incorrect.\n"
+						                       "Most likely you need to set fps_max to 99.5.\n"
+						                       "If you know what you're doing and you're sure your FPS is correct,\n"
+						                       "you can disable this message with bxt_hud_incorrect_fps_indicator 0.";
+
+						DrawMultilineString(2, 4 + si.iCharHeight, message, 1.0f, 1.0f, 1.0f);
+					}
+				} else if (fps < 99.6f && fps > 99.0f) {
+					const auto fps_max = CVars::fps_max.GetFloat();
+
+					if (fps_max < 99.7f && fps_max > 99.0f) {
+						if (badFrames >= 10) {
+							const char message[] = "Your FPS seems to be incorrect.\n"
+									       "Most likely you need to set fps_max to 100.\n"
+									       "If you know what you're doing and you're sure your FPS is correct,\n"
+									       "you can disable this message with bxt_hud_incorrect_fps_indicator 0.";
+
+							DrawMultilineString(2, 4 + si.iCharHeight, message, 1.0f, 1.0f, 1.0f);
+						} else {
+							++badFrames;
+						}
+					} else {
+						badFrames = 0;
+					}
+				}
+
+				if (!(fps < 99.6f && fps > 99.0f))
+					badFrames = 0;
+			}
+		}
+
+		lastTime = flTime;
+	}
+
 	void Init()
 	{
 		SpriteList = nullptr;
@@ -714,6 +784,7 @@ namespace CustomHud
 		DrawEntityHP(flTime);
 		DrawSelfgaussInfo(flTime);
 		DrawVisibleLandmarks(flTime);
+		DrawIncorrectFPSIndicator(flTime);
 
 		receivedAccurateInfo = false;
 	}
@@ -746,6 +817,8 @@ namespace CustomHud
 		if (!countingTime)
 			return;
 
+		const auto previous_seconds = seconds;
+
 		frames++;
 		timeRemainder += time;
 		seconds += static_cast<int>(timeRemainder);
@@ -760,6 +833,10 @@ namespace CustomHud
 		}
 
 		SendTimeUpdate();
+
+		// Only save the time occasionally (to prevent large demo file size).
+		if (previous_seconds != seconds)
+			SaveTimeToDemo();
 	}
 
 	void ResetTime()
@@ -785,6 +862,15 @@ namespace CustomHud
 
 		if (HwDLL::GetInstance().frametime_remainder)
 			Interprocess::WriteFrametimeRemainder(*HwDLL::GetInstance().frametime_remainder);
+	}
+
+	void SaveTimeToDemo() {
+		RuntimeData::Add(RuntimeData::Time{
+			static_cast<uint32_t>(hours),
+			static_cast<uint8_t>(minutes),
+			static_cast<uint8_t>(seconds),
+			timeRemainder
+		});
 	}
 
 	Interprocess::Time GetTime()

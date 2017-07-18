@@ -9,6 +9,9 @@ class HwDLL : public IHookableNameFilterOrdered
 {
 	HOOK_DECL(void, __cdecl, LoadAndDecryptHwDLL, int a, void* b, void* c)
 	HOOK_DECL(void, __cdecl, Cbuf_Execute)
+	HOOK_DECL(void, __cdecl, Cbuf_AddText, const char* text)
+	HOOK_DECL(void, __cdecl, Cbuf_InsertTextLines, const char* text)
+	HOOK_DECL(void, __cdecl, Cmd_TokenizeString, char* text)
 	HOOK_DECL(void, __cdecl, SeedRandomNumberGenerator)
 	HOOK_DECL(time_t, __cdecl, time, time_t *Time)
 	HOOK_DECL(long double, __cdecl, RandomFloat, float a1, float a2)
@@ -25,6 +28,9 @@ class HwDLL : public IHookableNameFilterOrdered
 	HOOK_DECL(void, __cdecl, Host_Reload_f)
 	HOOK_DECL(void, __cdecl, VGuiWrap2_ConDPrintf, const char* msg)
 	HOOK_DECL(void, __cdecl, VGuiWrap2_ConPrintf, const char* msg)
+	HOOK_DECL(void, __cdecl, CL_Record_f)
+	HOOK_DECL(void, __cdecl, Key_Event, int key, int down)
+	HOOK_DECL(void, __cdecl, Cmd_Exec_f)
 
 	struct cmdbuf_t
 	{
@@ -33,6 +39,13 @@ class HwDLL : public IHookableNameFilterOrdered
 		char *data;
 		unsigned maxsize;
 		unsigned cursize;
+	};
+
+	struct cmdalias_t
+	{
+		cmdalias_t* next;
+		char name[32];
+		char* value;
 	};
 
 	struct client_t;
@@ -150,6 +163,9 @@ public:
 
 	inline bool IsPaused() { return (sv && *(reinterpret_cast<int*>(sv) + 1)); }
 
+	inline bool IsRecordingDemo() const { return demorecording && *demorecording == 1; }
+	void StoreCommand(const char* command);
+
 	inline edict_t* GetPlayerEdict() const { return *sv_player; }
 	inline bool IsTASLogging() const { return tasLogging; }
 	inline size_t GetPreExecFramebulk() const { return preExecFramebulk; }
@@ -161,6 +177,9 @@ public:
 	double *frametime_remainder;
 	TASLogger::LogWriter logWriter;
 
+	typedef void(__cdecl *_Cbuf_InsertText) (const char* text);
+	_Cbuf_InsertText ORIG_Cbuf_InsertText;
+
 private:
 	// Make sure to have hl.exe last here, so that it is the lowest priority.
 	HwDLL() : IHookableNameFilterOrdered({ L"hw.dll", L"hw.so", L"sw.dll", L"hl.exe" }) {};
@@ -168,10 +187,6 @@ private:
 	void operator=(const HwDLL&);
 
 protected:
-	typedef void(__cdecl *_Cbuf_InsertText) (const char* text);
-	_Cbuf_InsertText ORIG_Cbuf_InsertText;
-	typedef void(__cdecl *_Cbuf_AddText) (const char* text);
-	_Cbuf_AddText ORIG_Cbuf_AddText;
 	typedef void(__cdecl *_Con_Printf) (const char* fmt, ...);
 	_Con_Printf ORIG_Con_Printf;
 	typedef void(__cdecl *_Cvar_RegisterVariable) (cvar_t* cvar);
@@ -196,6 +211,8 @@ protected:
 	_SV_AddLinksToPM ORIG_SV_AddLinksToPM;
 	typedef char*(__cdecl *_PF_GetPhysicsKeyValue) (const edict_t* pClient, const char* key);
 	_PF_GetPhysicsKeyValue ORIG_PF_GetPhysicsKeyValue;
+	typedef void(__cdecl *_CL_RecordHUDCommand) (const char* cmdname);
+	_CL_RecordHUDCommand ORIG_CL_RecordHUDCommand;
 	typedef int(__cdecl *_build_number)();
 	_build_number ORIG_build_number;
 
@@ -219,6 +236,12 @@ protected:
 	struct Cmd_BXT_TAS_Autojump_Up;
 	struct Cmd_BXT_TAS_Ducktap_Down;
 	struct Cmd_BXT_TAS_Ducktap_Up;
+	struct Cmd_BXT_Triggers_Add;
+	struct Cmd_BXT_Triggers_Clear;
+	struct Cmd_BXT_Triggers_Delete;
+	struct Cmd_BXT_Triggers_Export;
+	struct Cmd_BXT_Triggers_List;
+	struct Cmd_BXT_Triggers_SetCommand;
 	struct Cmd_BXT_Record;
 	struct Cmd_BXT_AutoRecord;
 	struct Cmd_BXT_Interprocess_Reset;
@@ -237,6 +260,8 @@ protected:
 	void UpdateHFRMultiplayerCheck();
 	void KeyDown(Key& btn);
 	void KeyUp(Key& btn);
+	void SaveInitialDataToDemo();
+	void UpdateCustomTriggers();
 
 	bool registeredVarsAndCmds;
 
@@ -264,6 +289,8 @@ protected:
 	cmdbuf_t *cmd_text;
 	double *host_frametime;
 	uintptr_t hfrMultiplayerCheck;
+	int *demorecording;
+	cmdalias_t* cmd_alias;
 
 	int framesTillExecuting;
 	bool executing;
@@ -384,4 +411,9 @@ protected:
 	std::string lastLoadedMap;
 
 	float lastVelocity[2]; // For velocity_avg of vectorial strafing.
+	bool insideKeyEvent;
+	bool insideExec;
+	std::string execScript;
+	bool insideHost_Changelevel2_f;
+	bool dontStopAutorecord;
 };

@@ -53,6 +53,11 @@ extern "C" void __cdecl HUD_DrawTransparentTriangles()
 {
 	return ClientDLL::HOOKED_HUD_DrawTransparentTriangles();
 }
+
+extern "C" int __cdecl HUD_Key_Event(int down, int keynum, const char* pszCurrentBinding)
+{
+	return ClientDLL::HOOKED_HUD_Key_Event(down, keynum, pszCurrentBinding);
+}
 #endif
 
 void ClientDLL::Hook(const std::wstring& moduleName, void* moduleHandle, void* moduleBase, size_t moduleLength, bool needToIntercept)
@@ -75,6 +80,7 @@ void ClientDLL::Hook(const std::wstring& moduleName, void* moduleHandle, void* m
 	MemUtils::AddSymbolLookupHook(moduleHandle, reinterpret_cast<void*>(ORIG_HUD_PostRunCmd), reinterpret_cast<void*>(HOOKED_HUD_PostRunCmd));
 	MemUtils::AddSymbolLookupHook(moduleHandle, reinterpret_cast<void*>(ORIG_HUD_Frame), reinterpret_cast<void*>(HOOKED_HUD_Frame));
 	MemUtils::AddSymbolLookupHook(moduleHandle, reinterpret_cast<void*>(ORIG_HUD_DrawTransparentTriangles), reinterpret_cast<void*>(HOOKED_HUD_DrawTransparentTriangles));
+	MemUtils::AddSymbolLookupHook(moduleHandle, reinterpret_cast<void*>(ORIG_HUD_Key_Event), reinterpret_cast<void*>(HOOKED_HUD_Key_Event));
 
 	if (needToIntercept)
 	{
@@ -88,7 +94,8 @@ void ClientDLL::Hook(const std::wstring& moduleName, void* moduleHandle, void* m
 			ORIG_HUD_Redraw, HOOKED_HUD_Redraw,
 			ORIG_HUD_PostRunCmd, HOOKED_HUD_PostRunCmd,
 			ORIG_HUD_Frame, HOOKED_HUD_Frame,
-			ORIG_HUD_DrawTransparentTriangles, HOOKED_HUD_DrawTransparentTriangles);
+			ORIG_HUD_DrawTransparentTriangles, HOOKED_HUD_DrawTransparentTriangles,
+			ORIG_HUD_Key_Event, HOOKED_HUD_Key_Event);
 	}
 }
 
@@ -106,7 +113,8 @@ void ClientDLL::Unhook()
 			ORIG_HUD_Redraw,
 			ORIG_HUD_PostRunCmd,
 			ORIG_HUD_Frame,
-			ORIG_HUD_DrawTransparentTriangles);
+			ORIG_HUD_DrawTransparentTriangles,
+			ORIG_HUD_Key_Event);
 	}
 
 	MemUtils::RemoveSymbolLookupHook(m_Handle, reinterpret_cast<void*>(ORIG_HUD_Init));
@@ -116,6 +124,7 @@ void ClientDLL::Unhook()
 	MemUtils::RemoveSymbolLookupHook(m_Handle, reinterpret_cast<void*>(ORIG_HUD_PostRunCmd));
 	MemUtils::RemoveSymbolLookupHook(m_Handle, reinterpret_cast<void*>(ORIG_HUD_Frame));
 	MemUtils::RemoveSymbolLookupHook(m_Handle, reinterpret_cast<void*>(ORIG_HUD_DrawTransparentTriangles));
+	MemUtils::RemoveSymbolLookupHook(m_Handle, reinterpret_cast<void*>(ORIG_HUD_Key_Event));
 
 	Clear();
 }
@@ -128,6 +137,7 @@ void ClientDLL::Clear()
 	ORIG_PM_PreventMegaBunnyJumping = nullptr;
 	ORIG_PM_ClipVelocity = nullptr;
 	ORIG_PM_WaterMove = nullptr;
+	ORIG_PM_Move = nullptr;
 	ORIG_V_CalcRefdef = nullptr;
 	ORIG_HUD_Init = nullptr;
 	ORIG_HUD_VidInit = nullptr;
@@ -136,6 +146,7 @@ void ClientDLL::Clear()
 	ORIG_HUD_PostRunCmd = nullptr;
 	ORIG_HUD_Frame = nullptr;
 	ORIG_HUD_DrawTransparentTriangles = nullptr;
+	ORIG_HUD_Key_Event = nullptr;
 	ppmove = nullptr;
 	offOldbuttons = 0;
 	offOnground = 0;
@@ -213,6 +224,7 @@ void ClientDLL::FindStuff()
 	ORIG_PM_PlayerMove = reinterpret_cast<_PM_PlayerMove>(MemUtils::GetSymbolAddress(m_Handle, "PM_PlayerMove")); // For Linux.
 	ORIG_PM_ClipVelocity = reinterpret_cast<_PM_ClipVelocity>(MemUtils::GetSymbolAddress(m_Handle, "PM_ClipVelocity")); // For Linux.
 	ORIG_PM_WaterMove = reinterpret_cast<_PM_WaterMove>(MemUtils::GetSymbolAddress(m_Handle, "PM_WaterMove")); // For Linux.
+	ORIG_PM_Move = reinterpret_cast<_PM_Move>(MemUtils::GetSymbolAddress(m_Handle, "PM_Move")); // For Linux.
 
 	pEngfuncs = reinterpret_cast<cl_enginefunc_t*>(MemUtils::GetSymbolAddress(m_Handle, "gEngfuncs"));
 	if (pEngfuncs) {
@@ -303,6 +315,13 @@ void ClientDLL::FindStuff()
 		EngineWarning("Features utilizing TriAPI are unavailable.\n");
 	}
 
+	ORIG_HUD_Key_Event = reinterpret_cast<_HUD_Key_Event>(MemUtils::GetSymbolAddress(m_Handle, "HUD_Key_Event"));
+	if (ORIG_HUD_Key_Event) {
+		EngineDevMsg("[client dll] Found HUD_Key_Event at %p.\n", ORIG_HUD_Key_Event);
+	} else {
+		EngineDevWarning("[client dll] Could not find HUD_Key_Event.\n");
+	}
+
 	bool noBhopcap = false;
 	{
 		auto pattern = fPM_PreventMegaBunnyJumping.get();
@@ -391,6 +410,7 @@ void ClientDLL::RegisterCVarsAndCommands()
 		REG(bxt_bhopcap_prediction);
 
 	if (ORIG_HUD_DrawTransparentTriangles) {
+		REG(bxt_show_custom_triggers);
 		REG(bxt_show_nodes);
 		REG(bxt_hud_useables);
 		REG(bxt_hud_useables_radius);
@@ -435,6 +455,7 @@ void ClientDLL::RegisterCVarsAndCommands()
 		REG(bxt_hud_visible_landmarks);
 		REG(bxt_hud_visible_landmarks_offset);
 		REG(bxt_hud_visible_landmarks_anchor);
+		REG(bxt_hud_incorrect_fps_indicator);
 	}
 	#undef REG
 }
@@ -519,6 +540,11 @@ HOOK_DEF_4(ClientDLL, int, __cdecl, PM_ClipVelocity, float*, in, float*, normal,
 HOOK_DEF_0(ClientDLL, void, __cdecl, PM_WaterMove)
 {
 	return ORIG_PM_WaterMove();
+}
+
+HOOK_DEF_2(ClientDLL, void, __cdecl, PM_Move, struct playermove_s*, ppmove, int, server)
+{
+	return ORIG_PM_Move(ppmove, server);
 }
 
 HOOK_DEF_1(ClientDLL, void, __cdecl, V_CalcRefdef, ref_params_t*, pparams)
@@ -649,4 +675,15 @@ HOOK_DEF_0(ClientDLL, void, __cdecl, HUD_DrawTransparentTriangles)
 
 	// This is required for the WON DLLs.
 	pEngfuncs->pTriAPI->RenderMode(kRenderNormal);
+}
+
+HOOK_DEF_3(ClientDLL, int, __cdecl, HUD_Key_Event, int, down, int, keynum, const char*, pszCurrentBinding)
+{
+	insideKeyEvent = true;
+
+	auto rv = ORIG_HUD_Key_Event(down, keynum, pszCurrentBinding);
+
+	insideKeyEvent = false;
+
+	return rv;
 }
