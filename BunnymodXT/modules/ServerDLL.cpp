@@ -84,6 +84,8 @@ void ServerDLL::Hook(const std::wstring& moduleName, void* moduleHandle, void* m
 			ORIG_CmdStart, HOOKED_CmdStart,
 			ORIG_CNihilanth__DyingThink, HOOKED_CNihilanth__DyingThink,
 			ORIG_COFGeneWorm__DyingThink, HOOKED_COFGeneWorm__DyingThink,
+			ORIG_CApache__DyingThink, HOOKED_CApache__DyingThink,
+			ORIG_CBaseDoor__DoorGoUp, HOOKED_CBaseDoor__DoorGoUp,
 			ORIG_CMultiManager__ManagerThink, HOOKED_CMultiManager__ManagerThink,
 			ORIG_AddToFullPack, HOOKED_AddToFullPack,
 			ORIG_CTriggerVolume__Spawn, HOOKED_CTriggerVolume__Spawn,
@@ -111,6 +113,8 @@ void ServerDLL::Unhook()
 			ORIG_CmdStart,
 			ORIG_CNihilanth__DyingThink,
 			ORIG_COFGeneWorm__DyingThink,
+			ORIG_CApache__DyingThink,
+			ORIG_CBaseDoor__DoorGoUp,
 			ORIG_CMultiManager__ManagerThink,
 			ORIG_AddToFullPack,
 			ORIG_CTriggerVolume__Spawn,
@@ -141,6 +145,8 @@ void ServerDLL::Clear()
 	ORIG_CNihilanth__DyingThink_Linux = nullptr;
 	ORIG_COFGeneWorm__DyingThink = nullptr;
 	ORIG_COFGeneWorm__DyingThink_Linux = nullptr;
+	ORIG_CApache__DyingThink = nullptr;
+	ORIG_CBaseDoor__DoorGoUp = nullptr;
 	ORIG_CMultiManager__ManagerThink = nullptr;
 	ORIG_CMultiManager__ManagerUse_Linux = nullptr;
 	ORIG_AddToFullPack = nullptr;
@@ -532,6 +538,22 @@ void ServerDLL::FindStuff()
 			EngineDevWarning("[server dll] Could not find COFGeneWorm::DyingThink.\n");
 			EngineWarning("Gene Worm automatic timer stopping is not available.\n");
 		}
+	}
+
+	ORIG_CApache__DyingThink = reinterpret_cast<_CApache__DyingThink>(MemUtils::GetSymbolAddress(m_Handle, "?DyingThink@CApache@@AAEXXZ"));
+	if (ORIG_CApache__DyingThink) {
+		EngineDevMsg("[server dll] Found CApache::DyingThink at %p.\n", ORIG_CApache__DyingThink);
+	} else {
+		EngineDevWarning("[server dll] Could not find CApache::DyingThink.\n");
+		EngineWarning("They Hunger Episode 3 automatic timer stopping is not available.\n");
+	}
+
+	ORIG_CBaseDoor__DoorGoUp = reinterpret_cast<_CBaseDoor__DoorGoUp>(MemUtils::GetSymbolAddress(m_Handle, "?DoorGoUp@CBaseDoor@@QAEXXZ"));
+	if (ORIG_CBaseDoor__DoorGoUp) {
+		EngineDevMsg("[server dll] Found CBaseDoor::DoorGoUp at %p.\n", ORIG_CBaseDoor__DoorGoUp);
+	} else {
+		EngineDevWarning("[server dll] Could not find CBaseDoor::DoorGoUp.\n");
+		EngineWarning("They Hunger Episode 2 automatic timer stopping is not available.\n");
 	}
 
 	ORIG_CMultiManager__ManagerThink = reinterpret_cast<_CMultiManager__ManagerThink>(MemUtils::GetSymbolAddress(m_Handle, "?ManagerThink@CMultiManager@@QAEXXZ"));
@@ -1066,6 +1088,8 @@ HOOK_DEF_1(ServerDLL, void, __cdecl, CNihilanth__DyingThink_Linux, void*, thispt
 	if (CVars::bxt_timer_autostop.GetBool())
 		CustomHud::SetCountingTime(false);
 	Interprocess::WriteGameEnd(CustomHud::GetTime());
+	CustomHud::SaveTimeToDemo();
+	RuntimeData::Add(RuntimeData::GameEndMarker {});
 
 	return ORIG_CNihilanth__DyingThink_Linux(thisptr);
 }
@@ -1092,13 +1116,53 @@ HOOK_DEF_1(ServerDLL, void, __cdecl, COFGeneWorm__DyingThink_Linux, void*, thisp
 	return ORIG_COFGeneWorm__DyingThink_Linux(thisptr);
 }
 
+HOOK_DEF_1(ServerDLL, void, __fastcall, CApache__DyingThink, void*, thisptr)
+{
+	if (ppGlobals) {
+		entvars_t *pev = *reinterpret_cast<entvars_t**>(reinterpret_cast<uintptr_t>(thisptr) + 4);
+		if (pev && pev->targetname) {
+			const char *targetname = (*ppGlobals)->pStringBase + pev->targetname;
+			if (!std::strcmp(targetname, "sheriffs_chppr")) {
+				if (CVars::bxt_timer_autostop.GetBool())
+					CustomHud::SetCountingTime(false);
+				Interprocess::WriteGameEnd(CustomHud::GetTime());
+				CustomHud::SaveTimeToDemo();
+				RuntimeData::Add(RuntimeData::GameEndMarker {});
+			}
+		}
+	}
+
+	return ORIG_CApache__DyingThink(thisptr);
+}
+
+HOOK_DEF_1(ServerDLL, void, __fastcall, CBaseDoor__DoorGoUp, void*, thisptr)
+{
+	if (ppGlobals) {
+		entvars_t *pev = *reinterpret_cast<entvars_t**>(reinterpret_cast<uintptr_t>(thisptr) + 4);
+		if (pev && pev->target) {
+			const char *target= (*ppGlobals)->pStringBase + pev->target;
+			if (!std::strcmp(target, "oil_spouts1_mm")) {
+				if (CVars::bxt_timer_autostop.GetBool())
+					CustomHud::SetCountingTime(false);
+				Interprocess::WriteGameEnd(CustomHud::GetTime());
+				CustomHud::SaveTimeToDemo();
+				RuntimeData::Add(RuntimeData::GameEndMarker {});
+			}
+		}
+	}
+
+	return ORIG_CBaseDoor__DoorGoUp(thisptr);
+}
+
 HOOK_DEF_2(ServerDLL, void, __fastcall, CMultiManager__ManagerThink, void*, thisptr, int, edx)
 {
 	if (ppGlobals) {
 		entvars_t *pev = *reinterpret_cast<entvars_t**>(reinterpret_cast<uintptr_t>(thisptr) + 4);
 		if (pev && pev->targetname) {
 			const char *targetname = (*ppGlobals)->pStringBase + pev->targetname;
-			if (!std::strcmp(targetname, "roll_the_credits") || !std::strcmp(targetname, "youwinmulti")) {
+			if (!std::strcmp(targetname, "roll_the_credits")
+				|| !std::strcmp(targetname, "youwinmulti")
+				|| !std::strcmp(targetname, "stairscene_mngr")) {
 				if (CVars::bxt_timer_autostop.GetBool())
 					CustomHud::SetCountingTime(false);
 				Interprocess::WriteGameEnd(CustomHud::GetTime());
