@@ -55,6 +55,7 @@ void SDL::FindStuff()
 	}
 }
 
+#ifdef _WIN32
 void SDL::PressKey(SDL_Keycode key)
 {
 	if (!ORIG_SDL_PushEvent)
@@ -72,3 +73,19 @@ void SDL::PressKey(SDL_Keycode key)
 	event.key.state = SDL_RELEASED;
 	ORIG_SDL_PushEvent(&event);
 }
+#else
+void SDL::PressKey(SDL_Keycode key)
+{
+	SDL_Event event;
+	event.type = SDL_KEYDOWN;
+	event.key.state = SDL_PRESSED;
+	event.key.repeat = 0;
+	event.key.keysym.scancode = SDL_GetScancodeFromKey(key);
+	event.key.keysym.sym = key;
+	SDL_PushEvent(&event);
+
+	event.type = SDL_KEYUP;
+	event.key.state = SDL_RELEASED;
+	SDL_PushEvent(&event);
+}
+#endif

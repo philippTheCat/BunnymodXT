@@ -21,7 +21,7 @@ public:
 	void PressKey(SDL_Keycode key);
 
 private:
-	SDL() : IHookableNameFilter({ L"SDL2.dll", L"libSDL2.so" }) {};
+	SDL() : IHookableNameFilter({ L"SDL2.dll" }) {};
 	SDL(const SDL&);
 	void operator=(const SDL&);
 
