@@ -1184,6 +1184,9 @@ struct HwDLL::Cmd_BXT_TAS_ExportScript
 		hw.exportResult.ClearProperties();
 		hw.exportResult.ClearFrames();
 
+		if (hw.exportFilename.empty())
+			return;
+
 		if (hw.runningFrames)
 			for (auto prop : hw.input.GetProperties())
 				hw.exportResult.SetProperty(prop.first, prop.second);
@@ -2113,7 +2116,9 @@ void HwDLL::InsertCommands()
 
 			if (!exportFilename.empty()) {
 				auto error = exportResult.Save(exportFilename).get();
-				if (error.Code != HLTAS::ErrorCode::OK)
+				if (error.Code == HLTAS::ErrorCode::OK)
+					ORIG_Con_Printf("Exporting finished successfully.\n");
+				else
 					ORIG_Con_Printf("Error saving the exported script: %s\n", HLTAS::GetErrorMessage(error).c_str());
 
 				exportFilename.clear();
